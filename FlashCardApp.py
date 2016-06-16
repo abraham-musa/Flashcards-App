@@ -10,7 +10,7 @@ import random
 
 #opens the txt file and splits each line into dictionary pairs
 def openFile():
-    filePath = '/Users/koonfaixie/Documents/StudyGuide files/'
+    filePath = '/Users/koonfaixie/Documents/Flashcards files/'
     os.chdir(filePath)
     flashCards = open('Flashcards.txt')
     d = {}
@@ -22,33 +22,59 @@ def openFile():
 
 #Application GUI
 class Application(Frame):
-    #generates a random card
-    def randomCardGenerator(self):
+#invokes cardshuffler, resets counter, enables buttons
+    def start(self):
+        self.cardCounter = -1
+        self.shuffler()
+        self.startButton.config(state=DISABLED)
+        self.nextButton.config(state=NORMAL)
+        self.checkButton.config(state=NORMAL)
+#shuffles cards
+    def shuffler(self):
         d = openFile()
-        randomKey = random.choice(d.keys())
-        randomValue =d[randomKey]
-        return randomKey, randomValue
+        temp=[]
+        dList=[]
+        for key, value in d.iteritems():
+            temp= [key,value]
+            dList.append(temp)
+        random.shuffle(dList)
+        self.shuffledCards = dList
+#nextCard
+    def addCounter(self):
+        self.cardCounter = self.cardCounter + 1
+        print self.cardCounter
+        return self.shuffledCards[self.cardCounter]
+#previousCard
+    def subtractCounter(self):
+        self.cardCounter = self.cardCounter - 1
+        print self.cardCounter
+        return self.shuffledCards[self.cardCounter]
+
     #calls for the previous card and displays it on the GUI screen
-    def previous(self):
+    def previousCard(self):
+        if self.cardCounter == 0:
+            self.previousButton.config(state=DISABLED)            
+        self.currentCard = self.subtractCounter()
         self.cardDisplay.delete('1.0', END)
-        self.cardDisplay.insert('1.0','\n'+self.previousCard[0]+'\n'*4+'Type your answer Below:\n')
-        self.previousButton.config(state=DISABLED)
+        self.cardDisplay.insert('1.0','\n'+self.currentCard[0]+'\n'*4+'Type your answer Below:\n')
         self.flipped = False
     #calls for self.randomCardGenerator to generate a random card and displays it on the GUI screen
     def nextCard(self): 
         #if the previousButton has been clicked, returns currentCard instead of a newly generated one
-        if self.previousButton["state"]==DISABLED:     
+        try:
+            self.currentCard = self.addCounter()
             self.cardDisplay.delete('1.0', END)
             self.cardDisplay.insert('1.0','\n'+self.currentCard[0]+'\n'*4+'Type your answer Below:\n')
+            self.flipped = False
             self.previousButton.config(state=NORMAL)
-            self.flipped = False
-        #calls for self.randomCardGenerator only if the previousButton has not been clicked prior
-        else:
-            self.previousCard = self.currentCard
-            self.currentCard = self.randomCardGenerator()
+        except:
             self.cardDisplay.delete('1.0', END)
-            self.cardDisplay.insert('1.0','\n'+self.currentCard[0]+'\n'*4+'Type your answer Below:\n')
-            self.flipped = False
+            self.cardDisplay.insert('1.0','\nNo more flashcards left! Please press start again to shuffle the deck\n')
+            self.previousButton.config(state=DISABLED)
+            self.nextButton.config(state=DISABLED)
+            self.checkButton.config(state=DISABLED)
+            self.startButton.config(state=NORMAL)
+
     #flips the flashcard over to check the answer
     def flip(self):
         if self.flipped == False:
@@ -61,19 +87,25 @@ class Application(Frame):
             self.flipped = False
     #GUI widgets/buttons creation
     def createWidgets(self):
+        self.startButton = Button(self)
+        self.startButton["text"] = "Start",
+        self.startButton["command"] = self.start
+
+        self.startButton.pack({"side": "left"})
+
         self.previousButton = Button(self, state=DISABLED)
         self.previousButton["text"] = "Previous",
-        self.previousButton["command"] = self.previous
+        self.previousButton["command"] = self.previousCard
 
         self.previousButton.pack({"side": "top"})
 
-        self.nextButton = Button(self)
+        self.nextButton = Button(self, state=DISABLED)
         self.nextButton["text"] = "Next",
         self.nextButton["command"] = self.nextCard
 
         self.nextButton.pack({"side": "top"})
 
-        self.checkButton = Button(self)
+        self.checkButton = Button(self, state=DISABLED)
         self.checkButton["text"] = "Check"
         self.checkButton["command"] = self.flip
 
@@ -85,12 +117,15 @@ class Application(Frame):
         self.scrollBar.pack(side=RIGHT, fill=Y)
         self.scrollBar.config(command=self.cardDisplay.yview)
         self.cardDisplay.config(yscrollcommand=self.scrollBar.set)
+
+
     #creates a GUI frame and packages GUI/widgets. Sets a default status for flashcards
     def __init__(self, master=None):
         Frame.__init__(self, master)
         self.currentCard = ("Please press Next to proceed","Please press Next to proceed")
-        self.previousCard = ("","")
         self.flipped = False
+        self.cardCounter = -1
+        self.shuffledCards = []
         self.pack()
         self.createWidgets()
         
